@@ -1,0 +1,88 @@
+{% extends '_base.html' %}
+
+{% block main %}
+
+{% if not detail %}
+<h1>Beispiele</h1>
+<p>zufällig ausgewählt aus dem Cache von <strong>genesapi-tabular</strong></p>
+{% else %}
+<p>
+<a class="mdc-button" href="/examples/">mehr Beispiele</a>
+</p>
+{% endif %}
+
+{% for example in examples %}
+<div class="mdc-card example">
+  {% if not detail %}
+  <div class="mdc-card__actions">
+    <div class="mdc-card__action-icons">
+      <a href="{{ example.id }}">
+        <button class="mdc-icon-button material-icons mdc-card__action" title="Direktlink">link</button>
+      </a>
+    </div>
+  </div>
+  {% endif %}
+  <div style="padding: 0px 1rem 1rem;">
+    <h2 class=" mdc-typography--display1">{{ example.title }}</h1>
+    <h3 class="mdc-theme--text-secondary-on-background mdc-typography--subheading1" style="margin-top: -1rem;">
+      {{ example.subtitle }}
+    </h3>
+    <div class="mdc-theme--text-primary-on-background mdc-typography--body1">
+      <ul>
+        <li><a href="{{ example.url }}">{{ example.url }}</a><br></li>
+        <li><a href="{{ example.static_url }}">Statische Version</a></li>
+      </ul>
+
+      <strong>Daten:</strong>
+      <ul>{% for statistic in example.schema %}
+        <li>{{ statistic.title_de }} <code>{{ statistic.key }}</code>
+          <ul>{% for measure in statistic %}
+            <li>{{ measure.title_de }} <code>{{ measure.key }}</code>
+              <ul>{% for dimension in measure %}
+                <li>{{ dimension.title_de }} <code>{{ dimension.key }}</code>
+                  <ul>{% for value in dimension %}
+                    <li>{{ value.title_de }} <code>{{ value.key }}</code></li>
+                    {% endfor %}
+                  </ul></li>
+                  {% endfor %}
+              </ul></li>
+              {% endfor %}
+          </ul></li>
+          {% endfor %}
+      </ul>
+
+      <strong>Parameter</strong><br>
+      <ul>
+        {% for key, value in example.params %}
+        <li>{{ key }} <code>{{ value }}</code></li>
+        {% endfor %}
+      </ul>
+
+      <strong>Tabellenvorschau</strong><br>
+      <div class="mdc-data-table">
+        <table class="mdc-data-table__table">
+          <thead>
+            <tr class="mdc-data-table__header-row">
+              {% for col in example.table.header %}
+              <th class="mdc-data-table__header-cell" role="columnheader" scope="col">{{ col }}</th>
+              {% endfor %}
+            </tr>
+          </thead>
+          <tbody class="mdc-data-table__content">
+            {% for row in example.table.rows %}
+            <tr class="mdc-data-table__row">
+              {% for col in row %}
+              <td class="mdc-data-table__cell">{{ col }}</td>
+              {% endfor %}
+            </tr>
+            {% endfor %}
+          </tbody>
+        </table>
+      </div>
+    </div>
+  </div>
+</div>
+{% endfor %}
+
+{% endblock %}
+

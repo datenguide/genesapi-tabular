@@ -4,6 +4,7 @@ from urllib.parse import urlparse
 
 from cache import Cache
 from elastic import ElasticQuery
+from examples import get_examples, get_example
 from query import Query
 from settings import DOCS_FILE
 from table import Table
@@ -14,13 +15,27 @@ app = Flask(__name__)
 
 @app.route('/docs/')
 def docs():
-    return render_template('docs.html', content=markdown.markdownFromFile(input=DOCS_FILE))
+    with open(DOCS_FILE) as f:
+        content = markdown.markdown(f.read())
+    return render_template('docs.html', content=content)
+
+
+@app.route('/examples/<example_id>')
+def example_detail(example_id):
+    return render_template('examples.html', examples=get_example(example_id), detail=True)
+
+
+@app.route('/examples/')
+def examples():
+    return render_template('examples.html', examples=get_examples())
 
 
 @app.route('/')
 def api():
     if not request.args:
-        return 'no url GET query'
+        with open('./index.md') as f:
+            content = markdown.markdown(f.read())
+        return render_template('index.html', content=content)
     # we use the raw url GET query to parse instead of Flask`s built-in `request.args.get()`
     # to make the parsing independent from Flask (see `query.py`)
     q = Query(urlparse(request.url).query)

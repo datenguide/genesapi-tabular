@@ -10,27 +10,20 @@ pre {
   color: black;
 }
 
-.attribute a {
+.mdc-card a {
   text-decoration: none;
 }
 
-.attribute a h2 {
-  color: black;
+.mdc-card.example {
+  overflow: hidden;
 }
 
-.attribute__example {
-  margin-bottom: 40px;
+.mdc-card.example code {
+  font-size: 13px;
+  padding: 3px;
+  background-color: #ededed;
 }
 
-.card__header {
-  padding: 0 1rem 1rem 1rem;
-  color: black;
-}
-
-.argument__value {
-  margin-top: 40px;
-}
-
-.argument__value a {
+.header__link {
   text-decoration: none;
 }

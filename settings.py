@@ -9,3 +9,4 @@ STORAGE_NAME = os.getenv('STORAGE_NAME', 'Regionalstatistik')
 DOCS_FILE = './README.md'
 SCHEMA_URL = 'https://data.genesapi.org/regionalstatistik/schema.json'
 NAMES_URL = 'https://data.genesapi.org/regionalstatistik/names.json'
+GENESAPI_TABULAR_STATIC = 'https://static.tabular.genesapi.org'
