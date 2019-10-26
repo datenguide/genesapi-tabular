@@ -1,0 +1,68 @@
+{
+  "index-patterns": ["genesapi-tabular-cache-*"],
+  "mappings": {
+    "properties": {
+      "content": {
+        "type": "text",
+        "index": false
+      },
+      "created": {
+        "type": "date"
+      },
+      "cubes": {
+        "type": "keyword"
+      },
+      "data": {
+        "type": "text",
+        "index": false
+      },
+      "definition": {
+        "properties": {
+          "data": {
+            "type": "object"
+          },
+          "delimiter": {
+            "type": "keyword"
+          },
+          "dformat": {
+            "type": "keyword"
+          },
+          "format": {
+            "type": "keyword"
+          },
+          "labels": {
+            "type": "keyword"
+          },
+          "layout": {
+            "type": "keyword"
+          },
+          "level": {
+            "type": "keyword"
+          },
+          "parent": {
+            "type": "keyword"
+          },
+          "region": {
+            "type": "keyword"
+          },
+          "sort": {
+            "type": "keyword"
+          },
+          "time": {
+            "type": "keyword"
+          }
+        }
+      },
+      "mimetype": {
+        "type": "keyword"
+      }
+    }
+  },
+  "settings": {
+    "index": {
+      "number_of_shards": "1",
+      "number_of_replicas": "0"
+    }
+  }
+}
+
