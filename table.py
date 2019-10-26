@@ -219,6 +219,7 @@ class Table:
             'mimetype': self.mimetype,
             'cubes': self.cubes,
             'definition': self.query.cleaned_data,
+            'urlquery': self.query.urlquery,
             'kind': 'concrete'
         }
 

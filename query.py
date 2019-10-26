@@ -119,6 +119,7 @@ class Query:
 
     def __init__(self, data):
         if isinstance(data, str):  # urlquery
+            self.urlquery = data  # FIXME create urlquery from dict when we support query via dict
             data = parse_qs(data)
         self._data = data
 
