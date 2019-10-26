@@ -1,5 +1,5 @@
 {
-  "index-patterns": ["genesapi-tabular-cache-*"],
+  "index_patterns": ["genesapi-tabular-cache-*"],
   "mappings": {
     "properties": {
       "content": {
