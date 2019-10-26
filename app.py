@@ -40,7 +40,7 @@ def api():
         es = ElasticQuery(q.cleaned_data)
         table = Table(es.facts, q)
 
-    if 'debug' in request.args:
+    if app.debug and 'debug' in request.args:
         return {
             'data': q.cleaned_data,
             'query_body': es.body,
