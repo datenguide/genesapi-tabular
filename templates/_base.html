@@ -1,0 +1,29 @@
+<!DOCTYPE html>
+<html>
+  <head>
+    <meta charset="utf-8" />
+    <meta name="viewport" content="width=device-width" />
+    <title>{{ title }}</title>
+    <link href="https://fonts.googleapis.com/css?family=IBM+Plex+Sans&display=swap" rel="stylesheet">
+    <link rel="stylesheet" href="/static/datenguide.css" type="text/css" media="all" />
+    <link rel="stylesheet" href="/static/style.css" type="text/css" media="all" />
+  </head>
+  <body>
+    {% include '/_header.html' %}
+    {% block hero %}{% include '/_hero.html' %}{% endblock %}
+    <div class="mdc-layout-grid">
+      <div class="mdc-layout-grid__inner">
+        <div class="mdc-layout-grid__cell mdc-layout-grid__cell--span-12-tablet mdc-layout-grid__cell--span-8-desktop">
+          <div>{% block main %}{% endblock %}</div>
+        </div>
+        <div class="mdc-layout-grid__cell mdc-layout-grid__cell--span-12-tablet mdc-layout-grid__cell--span-4-desktop">
+          <section class="article-list">
+            {% block aside %}{% include './_aside.html' %}{% endblock %}
+          </section>
+        </div>
+      </div>
+    </div>
+
+    {% include '/_footer.html' %}
+  </body>
+</html>

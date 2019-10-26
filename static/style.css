@@ -1,0 +1,36 @@
+* {
+  font-family: 'IBM Plex Sans', sans-serif;
+}
+
+pre {
+  margin: 0;
+  padding: 2rem;
+  background-color: #ececec;
+  font-size: 15px;
+  color: black;
+}
+
+.attribute a {
+  text-decoration: none;
+}
+
+.attribute a h2 {
+  color: black;
+}
+
+.attribute__example {
+  margin-bottom: 40px;
+}
+
+.card__header {
+  padding: 0 1rem 1rem 1rem;
+  color: black;
+}
+
+.argument__value {
+  margin-top: 40px;
+}
+
+.argument__value a {
+  text-decoration: none;
+}
