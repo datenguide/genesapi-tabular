@@ -8,16 +8,17 @@ from settings import ELASTIC_CACHE_INDEX, ELASTIC_HOST, ELASTIC_AUTH
 class ElasticsearchBackend:
     def __init__(self):
         self.client = Elasticsearch([ELASTIC_HOST], http_auth=ELASTIC_AUTH)
+        self.index = ELASTIC_CACHE_INDEX
 
     def get(self, id_):
         try:
-            return self.client.get_source(index=ELASTIC_CACHE_INDEX, id=id_)
+            return self.client.get_source(index=self.index, id=id_)
         except NotFoundError:
             return
 
     def set(self, id_, body):
         body['created'] = datetime.now().isoformat()
-        return self.client.index(index=ELASTIC_CACHE_INDEX, id=id_, body=body)
+        return self.client.index(index=self.index, id=id_, body=body)
 
 
 class BaseCache:

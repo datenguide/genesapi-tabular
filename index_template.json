@@ -55,6 +55,9 @@
       },
       "mimetype": {
         "type": "keyword"
+      },
+      "kind": {
+        "type": "keyword"
       }
     }
   },

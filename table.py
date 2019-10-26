@@ -218,12 +218,14 @@ class Table:
             'content': self.rendered(),
             'mimetype': self.mimetype,
             'cubes': self.cubes,
-            'definition': self.query.cleaned_data
+            'definition': self.query.cleaned_data,
+            'kind': 'concrete'
         }
 
     def serialize_base(self):
         return {
             'data': self._long_df.to_json(orient='records'),
             'cubes': self.cubes,
-            'definition': self.query.data_definition
+            'definition': self.query.data_definition,
+            'kind': 'base'
         }
