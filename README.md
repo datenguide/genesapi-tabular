@@ -4,7 +4,7 @@ Export data from GENESIS into tabular format (csv or json)
 
 see [examples](./examples.ipynb)
 
-https://tabular.genesapi.org
+https://tabular.genesapi.org?data=12613:BEV002(NAT,GES)&time=2017&region=01&labels=name
 
 ## GET serialisierung von CSV requests
 
