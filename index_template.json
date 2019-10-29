@@ -12,9 +12,8 @@
       "cubes": {
         "type": "keyword"
       },
-      "data": {
-        "type": "text",
-        "index": false
+      "blob": {
+        "type": "binary"
       },
       "definition": {
         "properties": {

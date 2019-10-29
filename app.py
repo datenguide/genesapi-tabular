@@ -40,7 +40,7 @@ def api():
     # to make the parsing independent from Flask (see `query.py`)
     q = Query(urlparse(request.url).query)
 
-    if not app.debug:
+    if not app.debug or 'cache' in request.args:
         # we use elasticsearch as a cache backend where we store raw text strings
         cache_hit = Cache.get(q.key)
         if cache_hit:

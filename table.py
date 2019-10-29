@@ -1,5 +1,6 @@
-import json
+import base64
 import pandas as pd
+import pickle
 
 from schema import NAMES
 from util import cached_property
@@ -31,7 +32,10 @@ def typed(df):
 
 class Table:
     def __init__(self, facts, query, from_base=False, cubes=[]):
-        self._df = typed(pd.DataFrame(facts))
+        if from_base:
+            self._df = facts
+        else:
+            self._df = typed(pd.DataFrame(facts))
         self._from_base = from_base
         self._is_empty = not len(self._df)
         self.query = query
@@ -45,7 +49,8 @@ class Table:
 
     @classmethod
     def from_base(cls, base_data, query):
-        return cls(json.loads(base_data['data']), query, True, cubes=base_data['cubes'])
+        df = pickle.loads(base64.b64decode(base_data['blob']))
+        return cls(df, query, True, cubes=base_data['cubes'])
 
     @cached_property
     def df(self):
@@ -142,6 +147,10 @@ class Table:
 
         # index names
         self._df.index = self._df.index.map(lambda x: x[1] if isinstance(x, tuple) else x)
+        if self.layout == 'time':
+            self._df.index.name = self._labels(self.dformat)[0]
+        if self.layout == 'region':
+            self._df.index.name = self._labels('region_id')[0]
 
         # labels inside df
         if self.labels in ('name', 'both'):
@@ -277,7 +286,7 @@ class Table:
 
     def serialize_base(self):
         return {
-            'data': self._long_df.to_json(orient='records'),
+            'blob': base64.b64encode(pickle.dumps(self._long_df)).decode(),
             'cubes': self.cubes,
             'definition': self.query.data_definition,
             'kind': 'base'
