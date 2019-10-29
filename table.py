@@ -6,6 +6,14 @@ from util import cached_property
 
 
 META_FIELDS = ['region_id', 'statistic']
+FIELD_LABELS = {
+    'region_id': 'Region',
+    'value': 'Wert',
+    'statistic': 'Statistik',
+    'measure': 'Merkmal',
+    'year': 'Jahr',
+    'date': 'Datum'
+}
 
 dtypes = {
     'region_id': str,
@@ -25,11 +33,13 @@ class Table:
     def __init__(self, facts, query, from_base=False, cubes=[]):
         self._df = typed(pd.DataFrame(facts))
         self._from_base = from_base
+        self._is_empty = not len(self._df)
         self.query = query
         self.measure_keys = [m.key for s in query.schema for m in s]
         self.dimension_keys = [d.key for s in query.schema for m in s for d in m]
         self.schema = query.schema
-        self.cubes = cubes or list(self._df['cube'].unique())
+        if not self._is_empty:
+            self.cubes = cubes or list(self._df['cube'].unique())
         for k, v in query.cleaned_data.items():
             setattr(self, k, v)
 
@@ -66,15 +76,17 @@ class Table:
         return self.df.fillna('').to_csv(index=not self.layout == 'long', sep=delimiter or self.delimiter)
 
     def process(self):
+        if self._is_empty:
+            return
         if not self._from_base:
             self.clean_values()
             self.clean_columns()
             self.make_long()
         self.transform()
+        self.clean_types()
+        self.labelize()
         self.sort_values()
         self.order_columns()
-        self.labelize()
-        self.clean_types()
 
     def make_long(self):
         """bring always into long format before other transformings"""
@@ -84,41 +96,37 @@ class Table:
             df_s = df[df['statistic'] == statistic.key]
             df_s_ = []
             for measure in statistic:
-                df_m = df_s[['region_id', self.dformat, 'statistic', measure.key]
-                            + [dimension.key for dimension in measure]]
+                dimensions = list(set(d.key for d in measure) & set(df_s.columns))  # FIXME validate schema / levels
+                df_m = df_s[['region_id', self.dformat, 'statistic', measure.key] + dimensions]
                 df_m = df_m.dropna(subset=[measure.key])
                 df_m = df_m.rename(columns={**{measure.key: 'value'},
-                                            **{dimension.key: '%s.%s' % (measure.key, dimension.key)
-                                               for dimension in measure}})
-                df_m['measure'] = measure.key
+                                            **{dimension: (statistic.key, measure.key, dimension)
+                                               for dimension in dimensions}})
+                df_m['measure'] = [(statistic.key, measure.key)] * len(df_m)
                 df_s_.append(df_m)
             dfs.append(pd.concat(df_s_))
-        self._df = self._long_df = pd.concat(dfs)
+        self._df = self._long_df = pd.concat(dfs).dropna(axis=1, how='all')
 
     def transform(self):
         if self.layout == 'long':
+            self._df['measure'] = self._df['measure'].map(lambda x: x[1])
             return  # already transformed via `self.make_long`
-        df = self._df
-        if len(self.measure_keys) == 1 and not len(self.dimension_keys):
+        dfs = []
+        for measure in self._df['measure'].unique():
+            df = self._df[self._df['measure'] == measure]
+            df = df.dropna(axis=1, how='all')
+            index_cols = sorted([c for c in df.columns if c not in self.meta_fields + ['value', 'measure']])
             if self.layout == 'time':
-                df = df.pivot(index=self.dformat, columns='region_id', values='value')
+                index_cols = [self.dformat, 'region_id', 'measure'] + index_cols
             if self.layout == 'region':
-                df = df.pivot(index='region_id', columns=self.dformat, values='value')
-            self._df = df
-            return
-        index_cols = sorted([c for c in self._df.columns if c not in self.meta_fields + ['value', 'measure']])
-        if self.layout == 'time':
-            index_cols = [self.dformat, 'region_id', 'measure'] + index_cols
-        if self.layout == 'region':
-            index_cols = ['region_id', self.dformat, 'measure'] + index_cols
-        df.sort_values(index_cols, inplace=True)
-        df.index = [df[c] for c in index_cols]
-        df = df['value']
-        for i in range(len(index_cols) - 1):
-            df = df.unstack()
-        df = df.dropna(axis=1, how='all')
-        df.columns = df.columns.map(lambda x: '.'.join(reversed([i for i in x if not pd.isna(i)])))
-        self._df = df
+                index_cols = ['region_id', self.dformat, 'measure'] + index_cols
+            df.sort_values(index_cols, inplace=True)
+            df.index = [df[c].map(lambda x: (c, x)) for c in index_cols]
+            df = df['value']
+            for i in range(len(index_cols) - 1):
+                df = df.unstack()
+            dfs.append(df)
+        self._df = pd.concat(dfs, axis=1).dropna(axis=1, how='all')
 
     def clean_values(self):
         for measure in self.measure_keys:
@@ -131,60 +139,104 @@ class Table:
 
     def labelize(self):
         # FIXME internationalization
-        if self.labels == 'name':
+
+        # index names
+        self._df.index = self._df.index.map(lambda x: x[1] if isinstance(x, tuple) else x)
+
+        # labels inside df
+        if self.labels in ('name', 'both'):
             if 'region_id' in self._df:
                 self._df['region_id'] = self._df['region_id'].map(lambda x: NAMES.get(x, x))
             elif self._df.index.name == 'region_id':
                 self._df.index = self._df.index.map(lambda x: NAMES.get(x))
             if 'statistic' in self._df:
-                self._df['statistic'] = self._df['statistic'].map(lambda x: self.schema[x].title_de)
+                self._df['statistic'] = self._df['statistic'].map(lambda x: self.schema[x]).map(str)
             if 'measure' in self._df:
-                measure_names = {m.key: m.title_de for s in self.schema for m in s}
-                self._df['measure'] = self._df['measure'].map(lambda x: measure_names[x])
+                measures = {m.key: m for s in self.schema for m in s}
+                self._df['measure'] = self._df['measure'].map(lambda x: measures[x]).map(str)
+            for column in self._df:
+                if column[0] in self.schema:
+                    dimension = self.schema[column]
+                    self._df[column] = self._df[column].map(lambda x: str(dimension[x]) if not pd.isna(x) else x)
+            # index name
+            if self._df.index.name in FIELD_LABELS:
+                self._df.index.name = FIELD_LABELS[self._df.index.name]
 
-            # FIXME implementation?
-            columns = {c: c for c in self._df.columns if c.isupper()}
-            for statistic in self.schema:
-                for measure in statistic:
-                    if measure.key in columns:
-                        columns[measure.key] = measure.title_de
-                    for dimension in measure:
-                        col = '%s.%s' % (measure.key, dimension.key)
-                        if col in columns:
-                            self._df[col] = self._df[col].map(lambda x: dimension[x].title_de if not pd.isna(x) else x)
-                            columns[col] = '%s: %s' % (measure.title_de, dimension.title_de)
-            meta_fields = {
-                'region_id': 'Region',
-                'value': 'Wert',
-                'statistic': 'Statistik',
-                'measure': 'Merkmal',
-                'year': 'Jahr',
-                'date': 'Datum'
-            }
-            self._df.rename(columns={**columns, **meta_fields}, inplace=True)
-            if self._df.index.name in meta_fields:
-                self._df.index.name = meta_fields[self._df.index.name]
+        # column labels
+        if self.layout == 'long':
+            def get_column_name(column):
+                if isinstance(column, tuple):
+                    statistic, measure, dimension = column
+                    if self.labels == 'id':
+                        return f'{statistic}:{measure}({dimension})'
+                    measure = self.schema[statistic][measure]
+                    if self.labels == 'name':
+                        return f'{measure}: {measure[dimension]}'
+                    # labels=both
+                    dimension = measure[dimension]
+                    return f'{measure} ({measure.key}): {dimension} ({dimension.key})'
+                if self.labels == 'name':
+                    return FIELD_LABELS[column]
+                return column
+            self._df.columns = self._df.columns.map(get_column_name)
+            return
+
+        not_layout_col = {
+            'time': 'region_id',
+            'region': self.dformat
+        }[self.layout]
+
+        def get_column_name(column):
+            if len(column) == 2:
+                column = dict(column)
+                if self.labels == 'id':
+                    return f"{'.'.join(column['measure'])}-{not_layout_col}:{column[not_layout_col]}"
+                if self.labels == 'name':
+                    statistic, measure = column['measure']
+                    s = column[not_layout_col]
+                    suffix = NAMES.get(s, s) if not_layout_col == 'region_id' else s
+                    return f"{self.schema[statistic, measure]} {suffix}"
+            statistic = None
+            measure = None
+            dimensions = []
+            suffix = None
+            for keys, value in column:
+                if isinstance(keys, tuple):
+                    # it is not possible to have different statistics and measures in 1 column
+                    statistic, measure, dimension = keys
+                    if not pd.isna(value):
+                        dimensions.append((dimension, value))
+                elif keys != 'measure':
+                    suffix = value  # it is not possible to have > 1 suffixes here
+            if self.labels == 'id':
+                return f"{statistic}:{measure}({','.join(':'.join(i) for i in dimensions)})-{not_layout_col}:{suffix}"
+            if self.labels == 'name':
+                measure = self.schema[statistic][measure]
+                suffix = NAMES.get(suffix, suffix) if not_layout_col == 'region_id' else suffix
+                return f"{measure}: {', '.join(str(measure[k][v]) for k, v in dimensions)}, {suffix}"
+
+        self._df.columns = self._df.columns.map(get_column_name)
 
     def sort_values(self):
         # ?sort=
-        main_col = {
+        main_col = self._labels({
             'time': self.dformat,
             'region': 'region_id',
             'measure': 'measure',
             'value': 'value'
-        }[self.sort]
+        }[self.sort])
 
         # ?layout=
-        column_order = {
+        column_order = self._labels(*{
             'long': ['region_id', self.dformat, 'measure'],
             'region': ['region_id', self.dformat, 'measure'],
             'time': [self.dformat, 'region_id', 'measure']
-        }[self.layout]
+        }[self.layout])
 
-        columns = [c for c in [main_col] + list(set(column_order) - set(main_col)) if c in self._df.columns]
+        columns = [c for c in main_col + list(set(column_order) - set(main_col)) if c in self._df.columns]
         other_columns = sorted(set(self._df.columns) - set(columns))
         self._df.sort_values(columns + other_columns, inplace=True)
-        if self._df.index.name in column_order + [main_col]:
+        if self._df.index.name in column_order + main_col:
             self._df.sort_index(inplace=True)
 
     def order_columns(self):
@@ -193,7 +245,7 @@ class Table:
             'region': ['region_id', self.dformat, 'measure'],
             'time': [self.dformat, 'region_id', 'measure']
         }
-        columns = [c for c in layouts[self.layout] if c in self._df.columns]
+        columns = [c for c in self._labels(*layouts[self.layout]) if c in self._df.columns]
         other_columns = sorted(set(self._df.columns) - set(columns))
         self._df = self._df[columns + other_columns]
 
@@ -230,3 +282,10 @@ class Table:
             'definition': self.query.data_definition,
             'kind': 'base'
         }
+
+    def _labels(self, *fields):
+        return [self.fields[f] for f in fields]
+
+    @cached_property
+    def fields(self):
+        return {k: k if self.labels == 'id' else label for k, label in FIELD_LABELS.items()}

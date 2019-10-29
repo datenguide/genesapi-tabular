@@ -38,20 +38,17 @@ class ElasticQuery:
                 'constant_score': {
                     'filter': {
                         'bool': {
-                            'must': [f for f in self.get_filters() if f] + [{
-                                'bool': {
-                                    'should': [p for p in self.get_paths()]
-                                }
-                            }],
-                            'must_not': [p for p in self.get_exclude_paths()]
+                            'must': [f for f in self.get_meta_filters() if f] + [{
+                                'bool': {'should': [s for s in self.get_statistics()]}
+                            }]
                         }
                     }
                 }
             }
         }
 
-    def get_filters(self):
-        return self.get_regions(), self.get_statistics(), self.get_time(), self.get_region_level(), self.get_parent()
+    def get_meta_filters(self):
+        return self.get_regions(), self.get_time(), self.get_region_level(), self.get_parent()
 
     def get_regions(self):
         data = self.data['region']
@@ -68,9 +65,6 @@ class ElasticQuery:
         if data:
             return {'prefix': {'region_id': data}}
 
-    def get_statistics(self):
-        return get_term_filter('statistic', list(self.data['data'].keys()))
-
     def get_time(self):
         data = self.data['time']
         if data in ('all', 'last'):
@@ -85,22 +79,40 @@ class ElasticQuery:
             return {'range': {'year': f}}
         return get_term_filter('year', data)
 
-    def get_paths(self):
-        for stat in self.data['data'].values():
-            for meas, dims in stat.items():
-                if not dims:
-                    yield {'exists': {'field': meas}}
-                else:
-                    for dim, vals in dims.items():
-                        if not vals:
-                            yield {'exists': {'field': 'path.%s.%s' % (meas, dim)}}
-                        elif len(vals) == 1:
-                            yield {'term': {'path.%s.%s.keyword' % (meas, dim): vals[0]}}
-                        else:
-                            yield {'terms': {'path.%s.%s.keyword' % (meas, dim): vals}}
+    def get_statistics(self):
+        for statistic, measures in self.data['data'].items():
+            yield {'bool': {'must': [
+                {'term': {'statistic': statistic}},
+                {'bool': {'should': [self.get_measure_filter(measure, dimensions, Schema[statistic])
+                                     for measure, dimensions in measures.items()]}}
+            ]}}
 
-    def get_exclude_paths(self):
-        for stat_id, stat in self.data['data'].items():
-            for meas, dims in stat.items():
-                for dim in set(d.key for d in Schema[stat_id][meas]) - set(dims.keys()):
-                    yield {'exists': {'field': 'path.%s.%s' % (meas, dim)}}
+    def get_measure_filter(self, measure, dimensions, schema):
+        other_dimensions = set(d.key for d in schema[measure]) - set(dimensions.keys())
+        if not dimensions:
+            return {'bool': {
+                'must': {'exists': {'field': measure}},
+                'must_not': [{'exists': {'field': d}} for d in other_dimensions]
+            }}
+        else:
+            not_values = {}
+            for dimension, values in dimensions.items():
+                if values:
+                    not_values['path.%s.%s.keyword' % (measure, dimension)] = list(
+                        set(v.key for v in schema[measure][dimension]) - set(values))
+            return {
+                'bool': {
+                    'should': [self.get_dimension_filter(measure, dimension, values)
+                               for dimension, values in dimensions.items()],
+                    # eclude other dimensions and values
+                    'must_not': [{'exists': {'field': 'path.%s.%s' % (measure, other_dimension)}}
+                                 for other_dimension in other_dimensions] + [
+                                     {'terms': {k: v}} for k, v in not_values.items()]
+                }
+            }
+
+    def get_dimension_filter(self, measure, dimension, values):
+        field = 'path.%s.%s' % (measure, dimension)
+        if not values:
+            return {'exists': {'field': field}}
+        return {'terms': {'%s.keyword' % field: values}}

@@ -25,7 +25,7 @@ class Mixin:
         if parent:
             self.parent = parent
             if hasattr(parent, '_filter_data') and self._child_class:
-                self._filter_data = self.parent._filter_data[self.key]
+                self._filter_data = self.parent._filter_data.get(self.key)
 
     def get_children(self):
         if self._child_class:
@@ -33,7 +33,7 @@ class Mixin:
         return iter(())  # empty generator
 
     def contains(self, item):
-        if hasattr(self, '_filter_data'):
+        if hasattr(self, '_filter_data') and self._filter_data:
             return item in self._filter_data.keys()  # noqa
         return True
 
@@ -46,11 +46,20 @@ class Mixin:
                 return True
         return False
 
-    def __getitem__(self, attr):
-        return self._child_class(self._item_accessor(attr), self)
+    def __getitem__(self, item):
+        if isinstance(item, tuple):
+            _self = self
+            for i in item:
+                _self = _self[i]
+            return _self
+        return self._child_class(self._item_accessor(item), self)
 
     def __repr__(self):
-        return '<%s: %s>' % (self.__class__.__name__, self.key)
+        return f'<{self.__class__.__name__}: {self.key}>'
+
+    def __str__(self):
+        # FIXME Internationalization
+        return self.title_de
 
 
 class Value(Mixin):
