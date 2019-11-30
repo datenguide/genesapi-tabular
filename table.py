@@ -34,8 +34,10 @@ class Table:
     def __init__(self, facts, query, from_base=False, cubes=[]):
         if from_base:
             self._df = facts
+            self._from_base = True
         else:
             self._df = typed(pd.DataFrame(facts))
+            self._from_base = False
         self._from_base = from_base
         self._is_empty = not len(self._df)
         self.query = query
@@ -114,7 +116,8 @@ class Table:
 
     def transform(self):
         if self.layout == 'long':
-            self._df['measure'] = self._df['measure'].map(lambda x: x[1])
+            if not self._from_base:
+                self._df['measure'] = self._df['measure'].map(lambda x: x[1])
             return  # already transformed via `self.make_long`
         dfs = []
         for measure in self._df['measure'].unique():
