@@ -36,46 +36,52 @@ def api():
         with open('./index.md') as f:
             content = markdown.markdown(f.read())
         return render_template('index.html', content=content)
-    # we use the raw url GET query to parse instead of Flask`s built-in `request.args.get()`
-    # to make the parsing independent from Flask (see `query.py`)
-    q = Query(urlparse(request.url).query)
+    try:
+        # we use the raw url GET query to parse instead of Flask`s built-in `request.args.get()`
+        # to make the parsing independent from Flask (see `query.py`)
+        q = Query(urlparse(request.url).query)
 
-    if not app.debug or 'cache' in request.args:
-        # we use elasticsearch as a cache backend where we store raw text strings
-        cache_hit = Cache.get(q.key)
-        if cache_hit:
-            return Response(cache_hit['content'], mimetype=cache_hit['mimetype'])
+        if not app.debug or 'cache' in request.args:
+            # we use elasticsearch as a cache backend where we store raw text strings
+            cache_hit = Cache.get(q.key)
+            if cache_hit:
+                return Response(cache_hit['content'], mimetype=cache_hit['mimetype'])
 
-        # try to get the base table (no format/transform) from cache:
-        base_data = Cache.get(q.data_key)
-        if base_data:
-            table = Table.from_base(base_data, q)
+            # try to get the base table (no format/transform) from cache:
+            base_data = Cache.get(q.data_key)
+            if base_data:
+                table = Table.from_base(base_data, q)
+
+            else:
+                # nothing in cache, so create the table
+                es = ElasticQuery(q.cleaned_data)
+                table = Table(es.facts, q)
+
+            # store in cache for later use
+            Cache.set(q.key, table.serialize())
+            if base_data is None:
+                Cache.set(q.data_key, table.serialize_base())
+
+            return Response(table.rendered(), mimetype=table.mimetype)
 
         else:
-            # nothing in cache, so create the table
+            try:
+                es = ElasticQuery(q.cleaned_data)
+                table = Table(es.facts, q)
+                data = table.formats
+            except Exception as e:
+                data = str(e)
+            if 'debug' in request.args:
+                return {
+                    'data': q.cleaned_data,
+                    'query_body': es.body,
+                    'table': data
+                }
             es = ElasticQuery(q.cleaned_data)
             table = Table(es.facts, q)
-
-        # store in cache for later use
-        Cache.set(q.key, table.serialize())
-        if base_data is None:
-            Cache.set(q.data_key, table.serialize_base())
-
-        return Response(table.rendered(), mimetype=table.mimetype)
-
-    else:
-        try:
-            es = ElasticQuery(q.cleaned_data)
-            table = Table(es.facts, q)
-            data = table.formats
-        except Exception as e:
-            data = str(e)
-        if 'debug' in request.args:
-            return {
-                'data': q.cleaned_data,
-                'query_body': es.body,
-                'table': data
-            }
-        es = ElasticQuery(q.cleaned_data)
-        table = Table(es.facts, q)
-        return Response(table.rendered(), mimetype=table.mimetype)
+            return Response(table.rendered(), mimetype=table.mimetype)
+    except Exception as e:
+        raise e;
+        return {
+            'error': str(e)
+        }
