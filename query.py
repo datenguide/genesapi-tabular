@@ -121,6 +121,10 @@ class Query:
         if isinstance(data, str):  # urlquery
             self.urlquery = data  # FIXME create urlquery from dict when we support query via dict
             data = parse_qs(data)
+            invalid = set(data.keys()) - set([a[0] for a in self.arguments])
+            if len(invalid):
+                raise ValidationError('unknown attributes: %s' % ', '.join(invalid))
+
         self._data = data
 
     def __getattr__(self, attr):
@@ -128,7 +132,11 @@ class Query:
 
     def clean(self):
         # TODO more logic to check if query is valid against actual schema
-        return {key: arg.clean(self._data) for key, arg in self.arguments}
+        cleaned_arguments = {key: arg.clean(self._data) for key, arg in self.arguments}
+        for statistic in cleaned_arguments['data']:
+            if statistic not in Schema:
+                raise ValidationError(f'Statistic `{statistic}` is not present in schema.')
+        return cleaned_arguments
 
     @cached_property
     def cleaned_data(self):
