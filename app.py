@@ -81,7 +81,6 @@ def api():
             table = Table(es.facts, q)
             return Response(table.rendered(), mimetype=table.mimetype)
     except Exception as e:
-        raise e;
         return {
             'error': str(e)
         }
