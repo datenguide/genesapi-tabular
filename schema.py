@@ -7,6 +7,10 @@ SCHEMA = requests.get(SCHEMA_URL).json()
 NAMES = requests.get(NAMES_URL).json()
 
 
+class ValidationError(Exception):
+    pass
+
+
 class Mixin:
     _child_class = None
     _child_accessor = None
@@ -100,5 +104,20 @@ class Schema(Mixin):
     def get_filtered_for_query(self, filter_data):
         return self.__class__(SCHEMA, filter_data)
 
+    def validate_query(self, data_query):
+        for statistic in data_query:
+            if statistic not in self:
+                raise ValidationError(f'Statistic `{statistic}` is not present in schema.')
+            for measure in data_query[statistic]:
+                if measure not in self[statistic]:
+                    raise ValidationError(f'Measure `{measure}` is not present in statistic `{statistic}`.')
+                for attribute in data_query[statistic][measure]:
+                    if attribute not in self[statistic][measure]:
+                        raise ValidationError(f'Attribute `{attribute}` is not present in measure `{measure}` of statistic `{statistic}`.')
+                    for value in data_query[statistic][measure][attribute]:
+                        if value not in self[statistic][measure][attribute]:
+                            raise ValidationError(f'Value `{value}` is not present in attribute `{attribute}` of measure `{measure}` in statistic `{statistic}`.')
+
+        return True
 
 Schema = Schema(SCHEMA)

@@ -133,10 +133,8 @@ class Query:
     def clean(self):
         # TODO more logic to check if query is valid against actual schema
         cleaned_arguments = {key: arg.clean(self._data) for key, arg in self.arguments}
-        for statistic in cleaned_arguments['data']:
-            if statistic not in Schema:
-                raise ValidationError(f'Statistic `{statistic}` is not present in schema.')
-        return cleaned_arguments
+        if Schema.validate_query(cleaned_arguments['data']):
+            return cleaned_arguments
 
     @cached_property
     def cleaned_data(self):
