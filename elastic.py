@@ -67,7 +67,7 @@ class ElasticQuery:
 
     def get_time(self):
         data = self.data['time']
-        if data in ('all', 'last'):
+        if data in ('all', 'latest'):
             return
         if ':' in data:  # years range
             start, end = data.split(':')

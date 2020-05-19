@@ -100,7 +100,7 @@ class Query:
     region = Argument('region', 'all', regex=[NUM_RE], choices=['DG'])
     level = Argument('level', '1', choices=['0', '1', '2', '3', '4', 'all'])
     parent = Argument('parent', None, regex=[NUM_RE])
-    time = Argument('time', 'last', choices=['all'], regex=[
+    time = Argument('time', 'latest', choices=['all'], regex=[
         r'^\d{4}$',         # 2000
         r'^\d{4}:\d{4}',    # 2000:2010
         r'^:\d{4}$',        # :2010
