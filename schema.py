@@ -2,6 +2,7 @@ import requests
 
 from settings import STORAGE_NAME, SCHEMA_URL, NAMES_URL
 from exceptions import ValidationError
+from util import cached_property
 
 
 SCHEMA = requests.get(SCHEMA_URL).json()
@@ -80,6 +81,10 @@ class Measure(Mixin):
     _child_class = Dimension
     _child_accessor = 'dimensions'
 
+    @cached_property
+    def region_levels(self):
+        return self._data['region_levels']
+
 
 class Statistic(Mixin):
     _child_class = Measure
@@ -101,6 +106,14 @@ class Schema(Mixin):
     def get_filtered_for_query(self, filter_data):
         return self.__class__(SCHEMA, filter_data)
 
+    def validate(self, cleaned_arguments):
+        return all((
+            self.validate_query(cleaned_arguments['data']),
+            self.validate_levels(cleaned_arguments['data'], cleaned_arguments['level']),
+            self.validate_parent(cleaned_arguments['parent']),
+            self.validate_parent(cleaned_arguments['region']),
+        ))
+
     def validate_query(self, data_query):
         for statistic in data_query:
             if statistic not in self:
@@ -114,7 +127,32 @@ class Schema(Mixin):
                     for value in data_query[statistic][measure][attribute]:
                         if value not in self[statistic][measure][attribute]:
                             raise ValidationError(f'Value `{value}` is not present in attribute `{attribute}` of measure `{measure}` in statistic `{statistic}`.')
-
         return True
+
+    def validate_levels(self, data_query, level):
+        if level == 'all':
+            return True
+        levels = [int(l) for l in level.split(',')]
+        for statistic in data_query:
+            for measure in data_query[statistic]:
+                if set(levels) - set(self[statistic][measure].region_levels):
+                    raise ValidationError(f'Level `{level}` is not available in measure `{measure}` of statistic `{statistic}`.')
+        return True
+
+    def validate_parent(self, parent):
+        if parent is None:
+            return True
+        if parent not in NAMES.keys():
+            raise ValidationError(f'`{parent}` is not a valid parent region key.')
+        return True
+
+    def validate_region(self, region):
+        if region == 'all':
+            return True
+        regions = [int(r) for r in region.split(',')]
+        if set(regions) - set(NAMES.keys()):
+            raise ValidationError(f'`{region}` is not a valid region key.')
+        return True
+
 
 Schema = Schema(SCHEMA)

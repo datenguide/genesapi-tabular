@@ -128,9 +128,8 @@ class Query:
         return self.cleaned_data.get(attr, self.defaults.get(attr))
 
     def clean(self):
-        # TODO more logic to check if query is valid against actual schema
         cleaned_arguments = {key: arg.clean(self._data) for key, arg in self.arguments}
-        if Schema.validate_query(cleaned_arguments['data']):
+        if Schema.validate(cleaned_arguments):
             return cleaned_arguments
 
     @cached_property
