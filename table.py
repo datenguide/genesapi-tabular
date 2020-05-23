@@ -149,22 +149,21 @@ class Table:
     def labelize(self):
         # FIXME internationalization
 
-        # index names
         self._df.index = self._df.index.map(lambda x: x[1] if isinstance(x, tuple) else x)
+
+        # always add `region_name`
+        if 'region_id' in self._df:
+            self._df['region_name'] = self._df['region_id'].map(lambda x: NAMES.get(x, x))
+        elif self._df.index.name == 'region_id':
+            self._df['region_name'] = self._df.index.map(lambda x: NAMES.get(x, x))
+
+        # index names
         if self.layout == 'time':
             self._df.index.name = self._labels(self.dformat)[0]
         if self.layout == 'region':
             self._df.index.name = self._labels('region_id')[0]
 
-        # import ipdb; ipdb.set_trace()
-
         # labels inside df
-        if 'region_id' in self._df:
-            self._df['region_name'] = self._df['region_id'].map(lambda x: NAMES.get(x, x))
-        elif self._df.index.name == 'region_id':
-            self._df['region_id'] = self._df.index
-            self._df.index = self._df.index.map(lambda x: NAMES.get(x))
-
         if self.labels == 'name':
             if 'statistic' in self._df:
                 self._df['statistic'] = self._df['statistic'].map(lambda x: self.schema[x]).map(str)
@@ -202,6 +201,10 @@ class Table:
 
         def get_column_name(column):
             if len(column) == 2:
+                if column[0] in FIELD_LABELS.keys():
+                    if self.labels == 'name':
+                        return FIELD_LABELS[column[0]]
+                    return column[0]
                 column = dict(column)
                 if self.labels == 'id':
                     return f"{'.'.join(column['measure'])}-{not_layout_col}:{column[not_layout_col]}"
