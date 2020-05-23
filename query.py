@@ -5,10 +5,7 @@ from urllib.parse import parse_qs
 
 from schema import Schema
 from util import cached_property, tree
-
-
-class ValidationError(Exception):
-    pass
+from exceptions import ValidationError
 
 
 def validate(condition, errmsg):

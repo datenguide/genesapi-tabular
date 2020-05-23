@@ -1,14 +1,11 @@
 import requests
 
 from settings import STORAGE_NAME, SCHEMA_URL, NAMES_URL
+from exceptions import ValidationError
 
 
 SCHEMA = requests.get(SCHEMA_URL).json()
 NAMES = requests.get(NAMES_URL).json()
-
-
-class ValidationError(Exception):
-    pass
 
 
 class Mixin:

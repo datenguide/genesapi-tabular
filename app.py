@@ -8,6 +8,7 @@ from examples import get_examples, get_example
 from query import Query
 from settings import DOCS_FILE
 from table import Table
+from exceptions import ValidationError
 
 
 app = Flask(__name__)
@@ -69,7 +70,7 @@ def api():
                 es = ElasticQuery(q.cleaned_data)
                 table = Table(es.facts, q)
                 data = table.formats
-            except Exception as e:
+            except ValidationError as e:
                 data = str(e)
             if 'debug' in request.args:
                 return {
@@ -80,7 +81,7 @@ def api():
             es = ElasticQuery(q.cleaned_data)
             table = Table(es.facts, q)
             return Response(table.rendered(), mimetype=table.mimetype)
-    except Exception as e:
+    except ValidationError as e:
         return {
             'error': str(e)
         }
