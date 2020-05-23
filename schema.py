@@ -149,7 +149,7 @@ class Schema(Mixin):
     def validate_region(self, region):
         if region == 'all':
             return True
-        regions = [int(r) for r in region.split(',')]
+        regions = region.split(',')
         if set(regions) - set(NAMES.keys()):
             raise ValidationError(f'`{region}` is not a valid region key.')
         return True
