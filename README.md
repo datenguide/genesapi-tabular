@@ -89,17 +89,13 @@ csv format einstellen: eine zeile pro jahr
 
     ?layout=time
 
-csv beschriftung einstellen: nur kürzel (default)
+csv beschriftung einstellen: nur statistik kürzel (default)
 
     ?labels=id
 
-csv beschriftung einstellen: ausgeschriebene namen
+csv beschriftung einstellen: ausgeschriebene statistik namen
 
     ?labels=name
-
-csv beschriftung: id + name
-
-    ?labels=both
 
 format:
 

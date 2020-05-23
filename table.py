@@ -8,7 +8,8 @@ from util import cached_property
 
 META_FIELDS = ['region_id', 'statistic']
 FIELD_LABELS = {
-    'region_id': 'Region',
+    'region_id': 'ID_Region',
+    'region_name': 'Region',
     'value': 'Wert',
     'statistic': 'Statistik',
     'measure': 'Merkmal',
@@ -155,12 +156,16 @@ class Table:
         if self.layout == 'region':
             self._df.index.name = self._labels('region_id')[0]
 
+        # import ipdb; ipdb.set_trace()
+
         # labels inside df
-        if self.labels in ('name', 'both'):
-            if 'region_id' in self._df:
-                self._df['region_id'] = self._df['region_id'].map(lambda x: NAMES.get(x, x))
-            elif self._df.index.name == 'region_id':
-                self._df.index = self._df.index.map(lambda x: NAMES.get(x))
+        if 'region_id' in self._df:
+            self._df['region_name'] = self._df['region_id'].map(lambda x: NAMES.get(x, x))
+        elif self._df.index.name == 'region_id':
+            self._df['region_id'] = self._df.index
+            self._df.index = self._df.index.map(lambda x: NAMES.get(x))
+
+        if self.labels == 'name':
             if 'statistic' in self._df:
                 self._df['statistic'] = self._df['statistic'].map(lambda x: self.schema[x]).map(str)
             if 'measure' in self._df:
@@ -184,9 +189,6 @@ class Table:
                     measure = self.schema[statistic][measure]
                     if self.labels == 'name':
                         return f'{measure}: {measure[dimension]}'
-                    # labels=both
-                    dimension = measure[dimension]
-                    return f'{measure} ({measure.key}): {dimension} ({dimension.key})'
                 if self.labels == 'name':
                     return FIELD_LABELS[column]
                 return column
@@ -253,9 +255,9 @@ class Table:
 
     def order_columns(self):
         layouts = {
-            'long': ['region_id', self.dformat, 'measure', 'value'],
-            'region': ['region_id', self.dformat, 'measure'],
-            'time': [self.dformat, 'region_id', 'measure']
+            'long': ['region_id', 'region_name', self.dformat, 'measure', 'value'],
+            'region': ['region_id', 'region_name', self.dformat, 'measure'],
+            'time': [self.dformat, 'region_id', 'region_name', 'measure']
         }
         columns = [c for c in self._labels(*layouts[self.layout]) if c in self._df.columns]
         other_columns = sorted(set(self._df.columns) - set(columns))
