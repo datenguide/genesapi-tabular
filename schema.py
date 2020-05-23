@@ -111,7 +111,7 @@ class Schema(Mixin):
             self.validate_query(cleaned_arguments['data']),
             self.validate_levels(cleaned_arguments['data'], cleaned_arguments['level']),
             self.validate_parent(cleaned_arguments['parent']),
-            self.validate_parent(cleaned_arguments['region']),
+            self.validate_region(cleaned_arguments['region']),
         ))
 
     def validate_query(self, data_query):
