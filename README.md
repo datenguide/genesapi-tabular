@@ -4,7 +4,24 @@ Export data from GENESIS into tabular format (csv or json)
 
 see [examples (jupyter notebook)](./examples.ipynb)
 
-Example:
+## Contribute
+
+- Clone this repo
+- Make sure python3 is installed:
+  `python --version`
+- Ask owner for credentials, create .env file
+- In your cloned folder, set up a new virtual environment:
+  `python3 -m venv myvenv`
+- Start virtual environemnt:
+  `source venv/bin/activate`
+- Install python packages:
+  `pip install -r requirements.txt`
+- If you don't have it already, install dotenv to use local .env file:
+  `pip install -U python-dotenv`
+- Start datenguide tabular api locally:
+  `flask run`
+
+## Examples
 
 [https://tabular.genesapi.org?data=12613:BEV002(NAT,GES)&time=2017&region=01&labels=name](<https://tabular.genesapi.org?data=12613:BEV002(NAT,GES)&time=2017&region=01&labels=name>)
 
