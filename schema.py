@@ -1,12 +1,19 @@
+import json
 import requests
 
-from settings import STORAGE_NAME, SCHEMA_URL, NAMES_URL
+from settings import STORAGE_NAME, SCHEMA_URL, NAMES_URL, SCHEMA_FP, NAMES_FP
 from exceptions import ValidationError
 from util import cached_property
 
 
-SCHEMA = requests.get(SCHEMA_URL).json()
-NAMES = requests.get(NAMES_URL).json()
+if SCHEMA_FP and NAMES_FP:
+    with open(SCHEMA_FP) as f:
+        SCHEMA = json.load(f)
+    with open(NAMES_FP) as f:
+        NAMES = json.load(f)
+else:
+    SCHEMA = requests.get(SCHEMA_URL).json()
+    NAMES = requests.get(NAMES_URL).json()
 
 
 class Mixin:
@@ -123,10 +130,10 @@ class Schema(Mixin):
                     raise ValidationError(f'Measure `{measure}` is not present in statistic `{statistic}`.')
                 for attribute in data_query[statistic][measure]:
                     if attribute not in self[statistic][measure]:
-                        raise ValidationError(f'Attribute `{attribute}` is not present in measure `{measure}` of statistic `{statistic}`.')
+                        raise ValidationError(f'Attribute `{attribute}` is not present in measure `{measure}` of statistic `{statistic}`.')  # noqa
                     for value in data_query[statistic][measure][attribute]:
                         if value not in self[statistic][measure][attribute]:
-                            raise ValidationError(f'Value `{value}` is not present in attribute `{attribute}` of measure `{measure}` in statistic `{statistic}`.')
+                            raise ValidationError(f'Value `{value}` is not present in attribute `{attribute}` of measure `{measure}` in statistic `{statistic}`.')  # noqa
         return True
 
     def validate_levels(self, data_query, level):
@@ -136,7 +143,7 @@ class Schema(Mixin):
         for statistic in data_query:
             for measure in data_query[statistic]:
                 if set(levels) - set(self[statistic][measure].region_levels):
-                    raise ValidationError(f'Level `{level}` is not available in measure `{measure}` of statistic `{statistic}`.')
+                    raise ValidationError(f'Level `{level}` is not available in measure `{measure}` of statistic `{statistic}`.')  # noqa
         return True
 
     def validate_parent(self, parent):

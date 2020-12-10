@@ -8,5 +8,7 @@ ELASTIC_AUTH = os.getenv('ELASTIC_AUTH')
 STORAGE_NAME = os.getenv('STORAGE_NAME', 'Regionalstatistik')
 DOCS_FILE = './README.md'
 SCHEMA_URL = 'https://data.genesapi.org/regionalstatistik/schema.json'
+SCHEMA_FP = os.getenv('SCHEMA_FP')
 NAMES_URL = 'https://data.genesapi.org/regionalstatistik/names.json'
+NAMES_FP = os.getenv('NAMES_FP')
 GENESAPI_TABULAR_STATIC = 'https://static.tabular.genesapi.org'
